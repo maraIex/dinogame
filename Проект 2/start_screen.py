@@ -46,35 +46,47 @@ def load_image(name, colorkey=None):
         image = image.convert_alpha()
     return image
 
+def generate_start():
+    fon = load_image('fon.jpg')
+    screen.blit(fon, (0, 0))
+    begin_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 180), (300, 75)),
+                                                text='Начать игру',
+                                                manager=manager)
+
+    continue_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 300), (300, 75)),
+                                                   text='Продолжить игру',
+                                                   manager=manager)
+    records_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 420), (300, 75)),
+                                                  text='Ваши рекорды',
+                                                  manager=manager)
+    end_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 540), (300, 75)),
+                                              text='Выйти из игры',
+                                              manager=manager)
+    font = pygame.font.SysFont('sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheading'
+                               'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 70)
+    text = font.render('Dino Game', 1, (255, 0, 0))
+    screen.blit(text, (305, 60))
+
+def game():
+    run = True
+    fps = 60
+    clock2 = pygame.time.Clock()
+    while run:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+        clock2.tick(fps)
+
 
 pygame.init()
 pygame.display.set_caption('Dino')
 width, height = 1000, 650
 screen = pygame.display.set_mode((width, height))
-manager = pygame_gui.UIManager((width, height))
-fon = load_image('fon.jpg')
 running = True
 fps = 500
 clock = pygame.time.Clock()
-screen.blit(fon, (0, 0))
-begin_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 180), (300, 75)),
-                                            text='Начать игру',
-                                            manager=manager)
-
-continue_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 300), (300, 75)),
-                                               text='Продолжить игру',
-                                               manager=manager)
-records_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 420), (300, 75)),
-                                              text='Ваши рекорды',
-                                              manager=manager)
-end_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 540), (300, 75)),
-                                          text='Выйти из игры',
-                                          manager=manager)
-font = pygame.font.SysFont('sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheading'
-                           'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 70)
-text = font.render('Dino Game', 1, (255, 0, 0))
-screen.blit(text, (305, 60))
-print(pygame.font.get_fonts())
+manager = pygame_gui.UIManager((width, height))
+generate_start()
 while running:
     timedelta = clock.tick(600) / 1000.0
     for event in pygame.event.get():
