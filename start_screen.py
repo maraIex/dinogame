@@ -69,8 +69,8 @@ class Cactus(pygame.sprite.Sprite):
     def __init__(self, bot):
         super().__init__(enemy_group, all_sprites)
         self.image = images['cactus']
-        self.image = pygame.transform.scale(self.image, (self.image.get_width() // 4,
-                                                         random.randint(100, 200)))
+        self.image = pygame.transform.scale(self.image, (self.image.get_width() // 5,
+                                                         random.randint(100, 190)))
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.bottom = bot + 10
@@ -136,6 +136,9 @@ def game():
     manager.clear_and_reset()
     clock2 = pygame.time.Clock()
     time_day = 0
+    time_score = 0
+    font = pygame.font.Font(None, 30)
+    text = font.render(f'Ваш счёт: {time_score}', 1, (255, 0, 0))
     while run:
         for events in pygame.event.get():
             if events.type == pygame.QUIT:
@@ -146,10 +149,9 @@ def game():
                     if dino.jump == 0:
                         dino.jump = 170
             if events.type == TIMER_EVENT_TYPE:
+                time_score += 1
                 font = pygame.font.Font(None, 30)
-                text = font.render(f'Ваш счёт: {pygame.time.get_ticks() // 1000}', 1, (255, 0, 0))
-                screen.fill((0, 190, 255), (20, 20, text.get_width(), text.get_height()))
-                screen.blit(text, (20, 20))
+                text = font.render(f'Ваш счёт: {time_score}', 1, (255, 0, 0))
             if events.type == TIMER_EVENT_CAKTUS:
                 Cactus(ground.rect.top)
                 pygame.time.set_timer(TIMER_EVENT_CAKTUS, random.randint(1500, 2000))
@@ -160,6 +162,7 @@ def game():
         screen.blit(desert, (0, 0))
         all_sprites.draw(screen)
         all_sprites.update()
+        screen.blit(text, (20, 20))
         pygame.display.flip()
         dino.x, dino.y = 0, 0
         if time_day >= 2000:
