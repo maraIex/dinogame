@@ -4,32 +4,27 @@ import pygame_gui
 import os
 import sys
 
-# class Ball(pygame.sprite.Sprite):
-#     def __init__(self, radius, x, y):
-#         super().__init__(all_sprites)
-#         self.radius = radius
-#         self.image = pygame.Surface((2 * radius, 2 * radius),
-#                                     pygame.SRCALPHA, 32)
-#         pygame.draw.circle(self.image, pygame.Color("green"),
-#                            (radius, radius), radius)
-#         self.rect = pygame.Rect(x, y, 2 * radius, 2 * radius)
-#         self.vx, self.vy = 0, 0
-#         while int(self.vx) == 0 or int(self.vy) == 0:
-#             self.vx = random.randint(-10, 10)
-#             self.vy = random.randint(-10, 10)
-#
-#     def update(self):
-#         self.rect = self.rect.move(self.vx, self.vy)
-#         if self.rect.y <= 0 or self.rect.y >= height:
-#             self.vy = -self.vy
-#         if self.rect.x <= 0 or self.rect.x >= width:
-#             self.vx = -self.vx
-# all_sprites = pygame.sprite.Group()
-# for i in range(10):
-#     Ball(20, 100, 100)
-# pygame.sprite.Group.empty(all_sprites)
-# all_sprites.draw(screen)
-# all_sprires.update()
+
+class Ball(pygame.sprite.Sprite):
+    def __init__(self, radius, x, y):
+        super().__init__(all_sprites)
+        self.radius = radius
+        self.image = pygame.Surface((2 * radius, 2 * radius),
+                                    pygame.SRCALPHA, 32)
+        pygame.draw.circle(self.image, pygame.Color("green"),
+                           (radius, radius), radius)
+        self.rect = pygame.Rect(x, y, 2 * radius, 2 * radius)
+        self.vx, self.vy = 0, 0
+        while int(self.vx) == 0 or int(self.vy) == 0:
+            self.vx = random.randint(-30, 30)
+            self.vy = random.randint(-30, 30)
+
+    def update(self):
+        self.rect = self.rect.move(self.vx, self.vy)
+        if self.rect.y <= 0 or self.rect.y >= height:
+            self.vy = -self.vy
+        if self.rect.x <= 0 or self.rect.x >= width:
+            self.vx = -self.vx
 
 
 class Scene(object):
@@ -45,6 +40,47 @@ class Scene(object):
     def handle_events(self, events):
         raise NotImplementedError
 
+
+class EndScene(Scene):
+    def __init__(self, x, y):
+        super().__init__()
+        screen.fill((0, 0, 0))
+        all_sprites.empty()
+        self.TIMER_EVENT_TYPE1 = pygame.NUMEVENTS - 1
+        pygame.time.set_timer(self.TIMER_EVENT_TYPE1, 1000)
+        for i in range(50):
+            Ball(20, x, y)
+        self.font = pygame.font.SysFont('sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheading'
+                                        'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 70)
+        self.text = self.font.render('Game Over', 1, (199, 0, 0))
+        self.font1 = pygame.font.SysFont('sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheading'
+                                        'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 20)
+        self.text1 = self.font1.render('Для продолжения нажмите Enter', 1, (199, 0, 0))
+
+
+    def update(self):
+        all_sprites.draw(screen)
+        all_sprites.update()
+
+    def handle_events(self, events):
+        global scene, gameover
+        for e in events:
+            if e.type == self.TIMER_EVENT_TYPE1:
+                all_sprites.empty()
+                screen.fill('green')
+                text_x = width // 2 - self.text.get_width() // 2
+                text_y = height // 2 - self.text.get_height() // 2
+                text_w = self.text.get_width()
+                text_h = self.text.get_height()
+                screen.blit(self.text, (text_x, text_y))
+                pygame.draw.rect(screen, (199, 0, 0), (text_x - 10, text_y - 10,
+                                                       text_w + 20, text_h + 20), 5)
+
+                screen.blit(self.text1, (text_x + 10, text_y + text_h + 20))
+                gameover = False
+            if e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_RETURN:
+                    scene = MainScene()
 
 class GameScene(Scene):
     def __init__(self):
@@ -87,7 +123,6 @@ class GameScene(Scene):
             if events.type == self.TIMER_EVENT_CAKTUS:
                 self.check_cactus += 1
                 Cactus(self.ground.rect.top)
-
                 if self.check_cactus == 5:
                     Bird()
                     self.check_cactus = 0
@@ -205,12 +240,12 @@ class Cactus(pygame.sprite.Sprite):
         self.rect.left = width
 
     def update(self):
+        global gameover
         self.rect.x -= 3
         if self.rect.x < 0:
             self.kill()
-            print(1)
         if pygame.sprite.collide_mask(self, scene.dino):
-            print(100)
+            gameover = True
 
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
@@ -309,6 +344,7 @@ images = {'grass': load_image('grass1.png'),
           'cactus': load_image('cactus.png'),
           'desert': load_image('desert.jpg'),
           'fon': load_image('fon.jpg')}
+gameover = False
 running = True
 fps = 60
 clock = pygame.time.Clock()
@@ -320,4 +356,7 @@ while running:
         running = False
     scene.handle_events(pygame.event.get())
     scene.update()
+    if gameover and not isinstance(scene, EndScene):
+        pygame.time.wait(300)
+        scene = EndScene(scene.dino.rect.right, scene.dino.rect.top)
     pygame.display.flip()
