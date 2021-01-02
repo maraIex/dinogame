@@ -51,14 +51,17 @@ class GameScene(Scene):
         super().__init__()
         self.TIMER_EVENT_TYPE = pygame.USEREVENT + 1
         self.TIMER_EVENT_CAKTUS = self.TIMER_EVENT_TYPE + 1
+        self.TIMER_EVENT_BIRD = self.TIMER_EVENT_CAKTUS + 1
         pygame.time.set_timer(self.TIMER_EVENT_TYPE, 1000)
-        pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, 1)
+        pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, 1000)
+        pygame.time.set_timer(self.TIMER_EVENT_BIRD, 4000)
         self.dino = Dino()
         self.ground = Ground()
         manager.clear_and_reset()
         self.clock2 = pygame.time.Clock()
         self.time_day = 0
         self.time_score = 0
+        self.check_cactus = 0
         self.font = pygame.font.Font(None, 30)
         self.desert = images['desert']
         self.desert = pygame.transform.scale(self.desert, (width, height))
@@ -82,8 +85,15 @@ class GameScene(Scene):
                     if self.dino.jump == 0:
                         self.dino.jump = 170
             if events.type == self.TIMER_EVENT_CAKTUS:
+                self.check_cactus += 1
                 Cactus(self.ground.rect.top)
-                pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(1900, 2100))
+
+                if self.check_cactus == 5:
+                    Bird()
+                    self.check_cactus = 0
+                    pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(2400, 3400))
+                else:
+                    pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(2100, 2500))
 
 
 class MainScene(Scene):
@@ -165,6 +175,22 @@ class Ground(pygame.sprite.Sprite):
     # def update(self): надо сделать "тор" для земли
     #     self.rect.x -= 3
 
+class Bird(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(enemy_group, all_sprites)
+        self.image = load_image(r'bird\bird.png', -1)
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect()
+        self.rect.top = 150
+        self.rect.left = width + 200
+
+    def update(self):
+        self.rect.x -= 3
+        if self.rect.x < 0:
+            self.kill()
+            print(1)
+        if pygame.sprite.collide_mask(self, scene.dino):
+            print(100)
 
 
 class Cactus(pygame.sprite.Sprite):
@@ -172,7 +198,7 @@ class Cactus(pygame.sprite.Sprite):
         super().__init__(enemy_group, all_sprites)
         self.image = images['cactus']
         self.image = pygame.transform.scale(self.image, (self.image.get_width() // 5,
-                                                         random.randint(100, 180)))
+                                                         random.randint(90, 170)))
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.bottom = bot + 10
