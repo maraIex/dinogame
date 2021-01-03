@@ -3,6 +3,7 @@ import random
 import pygame_gui
 import os
 import sys
+import sqlite3
 
 
 class Ball(pygame.sprite.Sprite):
@@ -57,7 +58,6 @@ class EndScene(Scene):
                                         'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 20)
         self.text1 = self.font1.render('Для продолжения нажмите Enter', 1, (199, 0, 0))
 
-
     def update(self):
         all_sprites.draw(screen)
         all_sprites.update()
@@ -80,7 +80,9 @@ class EndScene(Scene):
                 gameover = False
             if e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_RETURN:
+                    pygame.time.set_timer(self.TIMER_EVENT_TYPE1, 0)
                     scene = MainScene()
+
 
 class GameScene(Scene):
     def __init__(self):
@@ -135,36 +137,46 @@ class MainScene(Scene):
     def __init__(self):
         super().__init__()
         self.fon = load_image('fon.jpg')
-        self.begin_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 180), (300, 75)),
-                                                    text='Начать игру',
-                                                    manager=manager)
-
-        self.continue_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 300), (300, 75)),
-                                                       text='Продолжить игру',
-                                                       manager=manager)
-        self.records_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 420), (300, 75)),
-                                                      text='Ваши рекорды',
-                                                      manager=manager)
-        self.end_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 540), (300, 75)),
-                                                  text='Выйти из игры',
-                                                  manager=manager)
         self.font = pygame.font.SysFont('sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheading'
                                         'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 70)
+        self.begin_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 180), (300, 75)),
+                                                         text='Начать игру',
+                                                         manager=manager)
+
+        self.continue_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 300), (300, 75)),
+                                                            text='Продолжить игру',
+                                                            manager=manager)
+        self.records_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 420), (300, 75)),
+                                                           text='Ваши рекорды',
+                                                           manager=manager)
+        self.end_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 540), (300, 75)),
+                                                       text='Выйти из игры',
+                                                       manager=manager)
+
+        self.player_name = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((380, 135), (250, 200)),
+                                                               manager=manager)
+        self.player_name.set_text('Введите имя игрока')
         self.text = self.font.render('Dino Game', 1, (255, 0, 0))
 
     def update(self):
         screen.blit(self.fon, (0, 0))
-        screen.blit(self.text, (305, 60))
+        screen.blit(self.text, (305, 50))
         manager.update(timedelta)
         manager.draw_ui(screen)
 
     def handle_events(self, events):
-        global scene
+        global scene, player
         for event in events:
             if event.type == pygame.USEREVENT:
                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element.text == 'Начать игру':
-                        scene = GameScene()
+                        name = self.player_name.get_text()
+                        print(name)
+                        if name:
+                            player = name
+                            scene = GameScene()
+                        else:
+                            self.player_name.set_text('Для игры требуется ввести имя')
                     elif event.ui_element.text == 'Продолжить игру':
                         print('Продолжить игру')
                     elif event.ui_element.text == 'Ваши рекорды':
@@ -210,6 +222,7 @@ class Ground(pygame.sprite.Sprite):
     # def update(self): надо сделать "тор" для земли
     #     self.rect.x -= 3
 
+
 class Bird(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__(enemy_group, all_sprites)
@@ -220,12 +233,13 @@ class Bird(pygame.sprite.Sprite):
         self.rect.left = width + 200
 
     def update(self):
+        global gameover
         self.rect.x -= 3
         if self.rect.x < 0:
             self.kill()
             print(1)
         if pygame.sprite.collide_mask(self, scene.dino):
-            print(100)
+            gameover = True
 
 
 class Cactus(pygame.sprite.Sprite):
@@ -247,6 +261,7 @@ class Cactus(pygame.sprite.Sprite):
         if pygame.sprite.collide_mask(self, scene.dino):
             gameover = True
 
+
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
     # если файл не существует, то выходим
@@ -262,74 +277,6 @@ def load_image(name, colorkey=None):
     else:
         image = image.convert_alpha()
     return image
-
-
-# def generate_start():
-#     fon = load_image('fon.jpg')
-#     begin_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 180), (300, 75)),
-#                                                 text='Начать игру',
-#                                                 manager=manager)
-#
-#     continue_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 300), (300, 75)),
-#                                                    text='Продолжить игру',
-#                                                    manager=manager)
-#     records_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 420), (300, 75)),
-#                                                   text='Ваши рекорды',
-#                                                   manager=manager)
-#     end_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 540), (300, 75)),
-#                                               text='Выйти из игры',
-#                                               manager=manager)
-#     screen.blit(fon, (0, 0))
-#     font = pygame.font.SysFont('sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheading'
-#                                'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 70)
-#     text = font.render('Dino Game', 1, (255, 0, 0))
-#     screen.blit(text, (305, 60))
-#
-#
-# def game():
-#     global running
-#     global dino
-#     run = True
-#     TIMER_EVENT_TYPE = pygame.USEREVENT + 1
-#     TIMER_EVENT_CAKTUS = TIMER_EVENT_TYPE + 1
-#     pygame.time.set_timer(TIMER_EVENT_TYPE, 1000)
-#     pygame.time.set_timer(TIMER_EVENT_CAKTUS, 1)
-#     dino = Dino()
-#     ground = Ground()
-#     manager.clear_and_reset()
-#     clock2 = pygame.time.Clock()
-#     time_day = 0
-#     time_score = 0
-#     font = pygame.font.Font(None, 30)
-#     text = font.render(f'Ваш счёт: {time_score}', 1, (255, 0, 0))
-#     while run:
-#         for events in pygame.event.get():
-#             if events.type == pygame.QUIT:
-#                 run = False
-#                 running = False
-#             if events.type == pygame.KEYDOWN:
-#                 if events.key == pygame.K_w or events.key == pygame.K_SPACE:
-#                     if dino.jump == 0:
-#                         dino.jump = 170
-#             if events.type == TIMER_EVENT_TYPE:
-#                 time_score += 1
-#                 font = pygame.font.Font(None, 30)
-#                 text = font.render(f'Ваш счёт: {time_score}', 1, (255, 0, 0))
-#             if events.type == TIMER_EVENT_CAKTUS:
-#                 Cactus(ground.rect.top)
-#                 pygame.time.set_timer(TIMER_EVENT_CAKTUS, random.randint(1200, 2000))
-#         time_day += clock2.tick(fps)
-#         screen.fill((255, 255, 255))
-#         desert = images['desert']
-#         desert = pygame.transform.scale(desert, (width, height))
-#         screen.blit(desert, (0, 0))
-#         all_sprites.draw(screen)
-#         all_sprites.update()
-#         screen.blit(text, (20, 20))
-#         pygame.display.flip()
-#         dino.x, dino.y = 0, 0
-#         if time_day >= 2000:
-#             pass
 
 
 pygame.init()
@@ -350,6 +297,9 @@ fps = 60
 clock = pygame.time.Clock()
 manager = pygame_gui.UIManager((width, height))
 scene = MainScene()
+con = sqlite3.connect('records_db.db')
+cur = con.cursor()
+player = None
 while running:
     timedelta = clock.tick(fps) / 1000.0
     if pygame.event.get(pygame.QUIT):
@@ -358,5 +308,7 @@ while running:
     scene.update()
     if gameover and not isinstance(scene, EndScene):
         pygame.time.wait(300)
-        scene = EndScene(scene.dino.rect.right, scene.dino.rect.top)
+        cur.execute(f"INSERT INTO records(name, score) VALUES('{player}', {int(scene.time_score // 1)})")
+        con.commit()
+        scene = EndScene(scene.dino.rect.right, scene.dino.rect.bottom)
     pygame.display.flip()
