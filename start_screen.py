@@ -33,8 +33,14 @@ import sys
 
 
 class Dino(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, sheet, columns, rows, x, y):
         super().__init__(player_group, all_sprites)
+        self.iter_count = 0
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.rect.move(x, y)
         self.image = load_image(r'dino\dino1_a.png', -1)
         self.image = pygame.transform.scale(self.image, (self.image.get_width() + 30,
                                                          self.image.get_height() + 30))
@@ -43,7 +49,22 @@ class Dino(pygame.sprite.Sprite):
             90, height - height // 6 - self.image.get_height() + 25)
         self.mask = pygame.mask.from_surface(self.image)
 
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
     def update(self):
+        if self.iter_count == 15:
+            self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+            self.image = self.frames[self.cur_frame]
+            self.iter_count = 0
+        else:
+            self.iter_count += 1
         if self.jump > 0:
             self.rect = self.rect.move(0, -5)
             self.jump -= 3
@@ -131,7 +152,7 @@ def game():
     TIMER_EVENT_CAKTUS = TIMER_EVENT_TYPE + 1
     pygame.time.set_timer(TIMER_EVENT_TYPE, 1000)
     pygame.time.set_timer(TIMER_EVENT_CAKTUS, 1)
-    dino = Dino()
+    dino = Dino(load_image("dino/dinosheet.png"), 2, 1, 241, 185)
     ground = Ground()
     manager.clear_and_reset()
     clock2 = pygame.time.Clock()
