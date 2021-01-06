@@ -93,7 +93,7 @@ class GameScene(Scene):
         pygame.time.set_timer(self.TIMER_EVENT_TYPE, 1000)
         pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, 1000)
         pygame.time.set_timer(self.TIMER_EVENT_BIRD, 4000)
-        self.dino = Dino()
+        self.dino = Dino(load_image("dino/dinosheet.png"), 2, 1, 241, 195)
         self.ground = Ground()
         manager.clear_and_reset()
         self.clock2 = pygame.time.Clock()
@@ -298,75 +298,6 @@ def load_image(name, colorkey=None):
     else:
         image = image.convert_alpha()
     return image
-
-
-def generate_start():
-    fon = load_image('fon.jpg')
-    begin_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 180), (300, 75)),
-                                                text='Начать игру',
-                                                manager=manager)
-
-    continue_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 300), (300, 75)),
-                                                   text='Продолжить игру',
-                                                   manager=manager)
-    records_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 420), (300, 75)),
-                                                  text='Ваши рекорды',
-                                                  manager=manager)
-    end_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 540), (300, 75)),
-                                              text='Выйти из игры',
-                                              manager=manager)
-    screen.blit(fon, (0, 0))
-    font = pygame.font.SysFont('sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheading'
-                               'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 70)
-    text = font.render('Dino Game', 1, (255, 0, 0))
-    screen.blit(text, (305, 60))
-
-
-def game():
-    global running
-    global dino
-    run = True
-    TIMER_EVENT_TYPE = pygame.USEREVENT + 1
-    TIMER_EVENT_CAKTUS = TIMER_EVENT_TYPE + 1
-    pygame.time.set_timer(TIMER_EVENT_TYPE, 1000)
-    pygame.time.set_timer(TIMER_EVENT_CAKTUS, 1)
-    dino = Dino()
-    ground = Ground()
-    manager.clear_and_reset()
-    clock2 = pygame.time.Clock()
-    time_day = 0
-    time_score = 0
-    font = pygame.font.Font(None, 30)
-    text = font.render(f'Ваш счёт: {time_score}', 1, (255, 0, 0))
-    while run:
-        for events in pygame.event.get():
-            if events.type == pygame.QUIT:
-                run = False
-                running = False
-            if events.type == pygame.KEYDOWN:
-                if events.key == pygame.K_w or events.key == pygame.K_SPACE:
-                    if dino.jump == 0:
-                        dino.jump = 170
-            if events.type == TIMER_EVENT_TYPE:
-                time_score += 1
-                font = pygame.font.Font(None, 30)
-                text = font.render(f'Ваш счёт: {time_score}', 1, (255, 0, 0))
-            if events.type == TIMER_EVENT_CAKTUS:
-                Cactus(ground.rect.top)
-                pygame.time.set_timer(TIMER_EVENT_CAKTUS, random.randint(1500, 2000))
-        time_day += clock2.tick(fps)
-        screen.fill((255, 255, 255))
-        desert = images['desert']
-        desert = pygame.transform.scale(desert, (width, height))
-        screen.blit(desert, (0, 0))
-        all_sprites.draw(screen)
-        all_sprites.update()
-        screen.blit(text, (20, 20))
-        pygame.display.flip()
-        dino.x, dino.y = 0, 0
-        if time_day >= 2000:
-            pass
-
 
 pygame.init()
 pygame.display.set_caption('Dino')
