@@ -126,7 +126,7 @@ class GameScene(Scene):
                 self.check_cactus += 1
                 Cactus(self.ground.rect.top)
                 if self.check_cactus == 5:
-                    Bird()
+                    Bird(load_image("bird/BluePterSheetReversedDemo.png"), 9, 1, 620, 35)
                     self.check_cactus = 0
                     pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(2400, 3400))
                 else:
@@ -195,10 +195,10 @@ class Dino(pygame.sprite.Sprite):
         self.cut_sheet(sheet, columns, rows)
         self.cur_frame = 0
         self.image = self.frames[self.cur_frame]
-        self.rect = self.rect.move(x, y)
-        self.image = load_image(r'dino\dino1_a.png', -1)
-        self.image = pygame.transform.scale(self.image, (self.image.get_width() + 30,
-                                                         self.image.get_height() + 30))
+        # self.rect = self.rect.move(x, y)
+        # self.image = load_image(r'dino\dino1_a.png', -1)
+        # self.image = pygame.transform.scale(self.image, (self.image.get_width() + 30,
+        #                                                  self.image.get_height() + 30))
         self.jump = 0
         self.rect = self.image.get_rect().move(
             90, height - height // 6 - self.image.get_height() + 25)
@@ -245,15 +245,34 @@ class Ground(pygame.sprite.Sprite):
 
 
 class Bird(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, sheet, columns, rows, x, y):
         super().__init__(enemy_group, all_sprites)
-        self.image = load_image(r'bird\bird.png', -1)
+        self.iter_count = 0
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.top = 150
         self.rect.left = width + 200
 
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
     def update(self):
+        if self.iter_count == 15:
+            self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+            self.image = self.frames[self.cur_frame]
+            self.iter_count = 0
+        else:
+            self.iter_count += 1
         global gameover
         self.rect.x -= 3
         if self.rect.x < 0:
