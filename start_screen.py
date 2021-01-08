@@ -180,11 +180,32 @@ class MainScene(Scene):
                     elif event.ui_element.text == 'Продолжить игру':
                         print('Продолжить игру')
                     elif event.ui_element.text == 'Ваши рекорды':
-                        print('Ваши рекорды')
+                        self.show_records()
                     elif event.ui_element.text == 'Выйти из игры':
                         pygame.quit()
                         exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = event.pos
+                if self.player_name.rect.x <= x <= self.player_name.rect.right and \
+                        self.player_name.rect.y <= y <= self.player_name.rect.bottom:
+                    self.player_name.set_text('')
             manager.process_events(event)
+
+    def show_records(self):
+        manager.clear_and_reset()
+        data = cur.execute('SELECT name, score FROM records ORDER BY SCORE DESC').fetchall()
+        max_size = 0
+        for elem, score in data:
+            max_size = max(max_size, len(elem + str(score)))
+        max_size += 2
+        for i, (elem, score) in enumerate(data):
+            score = str(score)
+            space = ' ' * (max_size - len(elem + score))
+            data[i] = elem + space + score
+        self.table = pygame_gui.elements.UISelectionList(relative_rect=pygame.Rect((300, 150), (400, 400)),
+                                                         item_list=data, starting_height=222,
+                                                         manager=manager)
+
 
 
 class Dino(pygame.sprite.Sprite):
