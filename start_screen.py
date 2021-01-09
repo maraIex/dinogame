@@ -110,8 +110,8 @@ class GameScene(Scene):
         self.time_day += 1
         screen.fill((255, 255, 255))
         screen.blit(self.desert, (0, 0))
-        all_sprites.draw(screen)
         all_sprites.update()
+        all_sprites.draw(screen)
         screen.blit(text, (20, 20))
         if self.time_day >= 2000:
             pass
@@ -157,6 +157,7 @@ class MainScene(Scene):
                                                                manager=manager)
         self.player_name.set_text('Введите имя игрока')
         self.text = self.font.render('Dino Game', 1, (255, 0, 0))
+        self.exit_btn = None
 
     def update(self):
         screen.blit(self.fon, (0, 0))
@@ -172,7 +173,7 @@ class MainScene(Scene):
                     if event.ui_element.text == 'Начать игру':
                         name = self.player_name.get_text()
                         print(name)
-                        if name:
+                        if name != 'Для игры требуется ввести имя' and name != 'Введите имя игрока' and name:
                             player = name
                             scene = GameScene()
                         else:
@@ -189,10 +190,17 @@ class MainScene(Scene):
                 if self.player_name.rect.x <= x <= self.player_name.rect.right and \
                         self.player_name.rect.y <= y <= self.player_name.rect.bottom:
                     self.player_name.set_text('')
+            if self.exit_btn:
+                if self.exit_btn.check_pressed():
+                    manager.clear_and_reset()
+                    self.__init__()
             manager.process_events(event)
 
     def show_records(self):
         manager.clear_and_reset()
+        self.exit_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((20, 20), (120, 50)),
+                                                text='Выйти в меню',
+                                                manager=manager)
         data = cur.execute('SELECT name, score FROM records ORDER BY SCORE DESC').fetchall()
         max_size = 0
         for elem, score in data:
@@ -205,7 +213,6 @@ class MainScene(Scene):
         self.table = pygame_gui.elements.UISelectionList(relative_rect=pygame.Rect((300, 150), (400, 400)),
                                                          item_list=data, starting_height=222,
                                                          manager=manager)
-
 
 
 class Dino(pygame.sprite.Sprite):
@@ -255,7 +262,7 @@ class Dino(pygame.sprite.Sprite):
 
 class Ground(pygame.sprite.Sprite):
     def __init__(self):
-        super().__init__(all_sprites)
+        super().__init__(world_group, all_sprites)
         self.image = images['grass']
         self.image = pygame.transform.scale(self.image, (width, height // 6))
         self.rect = self.image.get_rect()
@@ -339,12 +346,14 @@ def load_image(name, colorkey=None):
         image = image.convert_alpha()
     return image
 
+
 pygame.init()
 pygame.display.set_caption('Dino')
 # dino = None
 width, height = 1000, 650
 all_sprites = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
+world_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 screen = pygame.display.set_mode((width, height))
 images = {'grass': load_image('grass1.png'),
