@@ -87,6 +87,7 @@ class EndScene(Scene):
 class GameScene(Scene):
     def __init__(self):
         super().__init__()
+        self.new_part = 10
         self.TIMER_EVENT_TYPE = pygame.USEREVENT + 1
         self.TIMER_EVENT_CAKTUS = self.TIMER_EVENT_TYPE + 1
         self.TIMER_EVENT_BIRD = self.TIMER_EVENT_CAKTUS + 1
@@ -94,7 +95,7 @@ class GameScene(Scene):
         pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, 1000)
         pygame.time.set_timer(self.TIMER_EVENT_BIRD, 4000)
         self.dino = Dino(load_image("dino/dinosheet.png"), 2, 1, 241, 195)
-        self.ground = Ground()
+        self.ground = Ground(height, width)
         manager.clear_and_reset()
         self.clock2 = pygame.time.Clock()
         self.time_day = 0
@@ -103,8 +104,16 @@ class GameScene(Scene):
         self.font = pygame.font.Font(None, 30)
         self.desert = images['desert']
         self.desert = pygame.transform.scale(self.desert, (width, height))
+        n = 50
+        for i in range(1, 101):
+            Ground(height, width - 1000 + 150 + n * i)
 
     def update(self):
+        if self.new_part == 10:
+            Ground(height, width)
+            self.new_part = 0
+        else:
+            self.new_part += 1
         self.time_score += 0.02
         text = self.font.render(f'Ваш счёт: {int(self.time_score // 1)}', 1, (255, 0, 0))
         self.time_day += 1
@@ -233,15 +242,19 @@ class Dino(pygame.sprite.Sprite):
 
 
 class Ground(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, y, x):
         super().__init__(all_sprites)
-        self.image = images['grass']
-        self.image = pygame.transform.scale(self.image, (width, height // 6))
+        self.grass_parts = [images['grass1'], images['grass2'], images['grass3'], images['grass4']]
+        self.image = random.choice(self.grass_parts)
+        # self.image = pygame.transform.scale(self.image, (width, height // 6))
         self.rect = self.image.get_rect()
-        self.rect.bottom = height
+        self.rect.bottom = y
+        self.rect.right = x
 
-    # def update(self): надо сделать "тор" для земли
-    #     self.rect.x -= 3
+    def update(self):
+        self.rect.x -= 3
+        if self.rect.x < 0:
+            self.kill()
 
 
 class Bird(pygame.sprite.Sprite):
@@ -329,7 +342,9 @@ screen = pygame.display.set_mode((width, height))
 images = {'grass': load_image('grass1.png'),
           'cactus': load_image('cactus.png'),
           'desert': load_image('desert.jpg'),
-          'fon': load_image('fon.jpg')}
+          'fon': load_image('fon.jpg'), 'grass1': load_image('grass_part1.png'),
+          'grass2': load_image('grass_part2.png'), 'grass3': load_image('grass_part3.png'),
+          'grass4': load_image('grass_part4.png')}
 gameover = False
 running = True
 fps = 60
