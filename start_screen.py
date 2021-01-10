@@ -94,7 +94,7 @@ class GameScene(Scene):
         pygame.time.set_timer(self.TIMER_EVENT_TYPE, 1000)
         pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, 1000)
         pygame.time.set_timer(self.TIMER_EVENT_BIRD, 4000)
-        self.dino = Dino(load_image("dino/dinosheet.png"), 2, 1, 241, 195)
+        self.dino = Dino(load_image("dino/dinosheet.png"), 2, 1)
         self.ground = Ground(height, width)
         manager.clear_and_reset()
         self.clock2 = pygame.time.Clock()
@@ -105,8 +105,8 @@ class GameScene(Scene):
         self.desert = images['desert']
         self.desert = pygame.transform.scale(self.desert, (width, height))
         n = 50
-        for i in range(1, 101):
-            Ground(height, width - 1000 + 150 + n * i)
+        for i in range(102):
+            Ground(height, width - 1000 + n * i)
 
     def update(self):
         if self.new_part == 10:
@@ -225,7 +225,7 @@ class MainScene(Scene):
 
 
 class Dino(pygame.sprite.Sprite):
-    def __init__(self, sheet, columns, rows, x, y):
+    def __init__(self, sheet, columns, rows):
         super().__init__(player_group, all_sprites)
         self.iter_count = 0
         self.frames = []
@@ -277,11 +277,11 @@ class Ground(pygame.sprite.Sprite):
         # self.image = pygame.transform.scale(self.image, (width, height // 6))
         self.rect = self.image.get_rect()
         self.rect.bottom = y
-        self.rect.right = x
+        self.rect.left = x
 
     def update(self):
         self.rect.x -= 3
-        if self.rect.x < 0:
+        if self.rect.right < 0:
             self.kill()
 
 
