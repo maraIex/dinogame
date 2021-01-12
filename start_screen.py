@@ -1,9 +1,10 @@
-import pygame
-import random
-import pygame_gui
 import os
-import sys
+import random
 import sqlite3
+import sys
+
+import pygame
+import pygame_gui
 
 
 class Ball(pygame.sprite.Sprite):
@@ -87,31 +88,45 @@ class EndScene(Scene):
 class GameScene(Scene):
     def __init__(self):
         super().__init__()
+        self.new_part = 10
         self.TIMER_EVENT_TYPE = pygame.USEREVENT + 1
         self.TIMER_EVENT_CAKTUS = self.TIMER_EVENT_TYPE + 1
         self.TIMER_EVENT_BIRD = self.TIMER_EVENT_CAKTUS + 1
         pygame.time.set_timer(self.TIMER_EVENT_TYPE, 1000)
-        pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, 1000)
+        pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, 10)
         pygame.time.set_timer(self.TIMER_EVENT_BIRD, 4000)
-        self.dino = Dino(load_image("dino/dinosheet.png"), 2, 1, 241, 195)
-        self.ground = Ground()
+        self.dino = Dino(load_image("dino/dinosheet.png"), 2, 1)
+        self.ground = Ground(height, width)
         manager.clear_and_reset()
         self.clock2 = pygame.time.Clock()
         self.time_day = 0
         self.time_score = 0
-        self.check_cactus = 0
         self.font = pygame.font.Font(None, 30)
         self.desert = images['desert']
         self.desert = pygame.transform.scale(self.desert, (width, height))
+        self.bird_init = 0
+        n = 50
+        for i in range(102):
+            Ground(height, width - 1000 + n * i)
 
     def update(self):
+        global fps
+        if self.new_part == 10:
+            Ground(height, width)
+            self.new_part = 0
+        else:
+            self.new_part += 1
+        if self.bird_init == 0:
+            self.bird_init = random.randint(2, 7)
         self.time_score += 0.02
         text = self.font.render(f'Ваш счёт: {int(self.time_score // 1)}', 1, (255, 0, 0))
+        if int(self.time_score // 1) > 10:
+            fps = 90
         self.time_day += 1
         screen.fill((255, 255, 255))
         screen.blit(self.desert, (0, 0))
-        all_sprites.draw(screen)
         all_sprites.update()
+        all_sprites.draw(screen)
         screen.blit(text, (20, 20))
         if self.time_day >= 2000:
             pass
@@ -119,18 +134,24 @@ class GameScene(Scene):
     def handle_events(self, e):
         for events in e:
             if events.type == pygame.KEYDOWN:
-                if events.key == pygame.K_w or events.key == pygame.K_SPACE:
+                if events.key == pygame.K_w or events.key == pygame.K_SPACE or events.key == pygame.K_UP:
                     if self.dino.jump == 0:
                         self.dino.jump = 170
             if events.type == self.TIMER_EVENT_CAKTUS:
-                self.check_cactus += 1
+                self.bird_init -= 1
                 Cactus(self.ground.rect.top)
-                if self.check_cactus == 5:
-                    Bird(load_image("bird/BluePterSheetReversedDemo.png"), 9, 1, 620, 35)
-                    self.check_cactus = 0
-                    pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(2400, 3400))
+                if self.bird_init == 0:
+                    Bird(load_image("bird/BluePterSheetReversedDemo.png"), 9, 1)
+                    self.bird_init = 0
+                    if fps == 60:
+                        pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(2400, 3400))
+                    else:
+                        pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(1500, 2400))
                 else:
-                    pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(2100, 2500))
+                    if fps == 60:
+                        pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(2100, 2500))
+                    else:
+                        pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(1300, 1700))
 
 
 class MainScene(Scene):
@@ -155,8 +176,12 @@ class MainScene(Scene):
 
         self.player_name = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((380, 135), (250, 200)),
                                                                manager=manager)
+        self.rules = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((width - 150, 540), (125, 75)),
+                                                       text='Правила игры',
+                                                       manager=manager)
         self.player_name.set_text('Введите имя игрока')
         self.text = self.font.render('Dino Game', 1, (255, 0, 0))
+        self.exit_btn = None
 
     def update(self):
         screen.blit(self.fon, (0, 0))
@@ -172,7 +197,7 @@ class MainScene(Scene):
                     if event.ui_element.text == 'Начать игру':
                         name = self.player_name.get_text()
                         print(name)
-                        if name:
+                        if name != 'Для игры требуется ввести имя' and name != 'Введите имя игрока' and name:
                             player = name
                             scene = GameScene()
                         else:
@@ -180,15 +205,57 @@ class MainScene(Scene):
                     elif event.ui_element.text == 'Продолжить игру':
                         print('Продолжить игру')
                     elif event.ui_element.text == 'Ваши рекорды':
-                        print('Ваши рекорды')
+                        self.show_records()
+                    elif event.ui_element.text == 'Правила игры':
+                        self.show_rules()
                     elif event.ui_element.text == 'Выйти из игры':
                         pygame.quit()
                         exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = event.pos
+                if self.player_name.rect.x <= x <= self.player_name.rect.right and \
+                        self.player_name.rect.y <= y <= self.player_name.rect.bottom:
+                    self.player_name.set_text('')
+            if self.exit_btn:
+                if self.exit_btn.check_pressed():
+                    manager.clear_and_reset()
+                    self.__init__()
             manager.process_events(event)
+
+    def show_records(self):
+        manager.clear_and_reset()
+        self.exit_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((20, 20), (120, 50)),
+                                                text='Выйти в меню',
+                                                manager=manager)
+        data = cur.execute('SELECT name, score FROM records ORDER BY SCORE DESC').fetchall()
+        max_size = 0
+        for elem, score in data:
+            max_size = max(max_size, len(elem + str(score)))
+        max_size += 2
+        for i, (elem, score) in enumerate(data):
+            score = str(score)
+            space = ' ' * (max_size - len(elem + score))
+            data[i] = elem + space + score
+        self.table = pygame_gui.elements.UISelectionList(relative_rect=pygame.Rect((300, 150), (400, 400)),
+                                                         item_list=data, starting_height=222,
+                                                         manager=manager)
+
+    def show_rules(self):
+        manager.clear_and_reset()
+        self.exit_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((20, 20), (120, 50)),
+                                                     text='Выйти в меню',
+                                                     manager=manager)
+        text = "Добро пожаловать в игру, новичок!<br>" +\
+               "В DinoGame предельно простые правила, а для управления нужна лишь кнопка Space или стрелочки.<br>" +\
+               "Цель игры: продержаться как можно дольше, избегая кактусов и птеродактилей.<br>" +\
+               "Что ж, удачи в дивном старом мире, комрад!!!"
+        self.table = pygame_gui.elements.UITextBox(html_text=text,
+                                                   relative_rect=pygame.Rect((300, 200), (400, 400)),
+                                                   manager=manager)
 
 
 class Dino(pygame.sprite.Sprite):
-    def __init__(self, sheet, columns, rows, x, y):
+    def __init__(self, sheet, columns, rows):
         super().__init__(player_group, all_sprites)
         self.iter_count = 0
         self.frames = []
@@ -201,7 +268,7 @@ class Dino(pygame.sprite.Sprite):
         #                                                  self.image.get_height() + 30))
         self.jump = 0
         self.rect = self.image.get_rect().move(
-            90, height - height // 6 - self.image.get_height() + 25)
+            90, height - height // 6 - self.image.get_height() + 45)
         self.mask = pygame.mask.from_surface(self.image)
 
     def cut_sheet(self, sheet, columns, rows):
@@ -233,22 +300,27 @@ class Dino(pygame.sprite.Sprite):
 
 
 class Ground(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, y, x):
         super().__init__(all_sprites)
-        self.image = images['grass']
-        self.image = pygame.transform.scale(self.image, (width, height // 6))
+        self.grass_parts = [images['grass1'], images['grass2'], images['grass3'], images['grass4']]
+        self.image = random.choice(self.grass_parts)
+        # self.image = pygame.transform.scale(self.image, (width, height // 6))
         self.rect = self.image.get_rect()
-        self.rect.bottom = height
+        self.rect.bottom = y
+        self.rect.left = x
 
-    # def update(self): надо сделать "тор" для земли
-    #     self.rect.x -= 3
+    def update(self):
+        self.rect.x -= 3
+        if self.rect.right < 0:
+            self.kill()
 
 
 class Bird(pygame.sprite.Sprite):
-    def __init__(self, sheet, columns, rows, x, y):
+    def __init__(self, sheet, columns, rows):
         super().__init__(enemy_group, all_sprites)
         self.iter_count = 0
         self.frames = []
+        self.speed = [3, 5, 7]
         self.cut_sheet(sheet, columns, rows)
         self.cur_frame = 0
         self.image = self.frames[self.cur_frame]
@@ -267,13 +339,13 @@ class Bird(pygame.sprite.Sprite):
                     frame_location, self.rect.size)))
 
     def update(self):
+        global gameover
         if self.iter_count == 15:
             self.cur_frame = (self.cur_frame + 1) % len(self.frames)
             self.image = self.frames[self.cur_frame]
             self.iter_count = 0
         else:
             self.iter_count += 1
-        global gameover
         self.rect.x -= 3
         if self.rect.x < 0:
             self.kill()
@@ -292,6 +364,7 @@ class Cactus(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.bottom = bot + 10
         self.rect.left = width
+        self.speed = [3, 4, 5]
 
     def update(self):
         global gameover
@@ -318,18 +391,24 @@ def load_image(name, colorkey=None):
         image = image.convert_alpha()
     return image
 
+
 pygame.init()
 pygame.display.set_caption('Dino')
 # dino = None
 width, height = 1000, 650
 all_sprites = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
+world_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 screen = pygame.display.set_mode((width, height))
 images = {'grass': load_image('grass1.png'),
           'cactus': load_image('cactus.png'),
           'desert': load_image('desert.jpg'),
-          'fon': load_image('fon.jpg')}
+          'fon': load_image('fon.jpg'),
+          'grass1': load_image('grass_part1.png'),
+          'grass2': load_image('grass_part2.png'),
+          'grass3': load_image('grass_part3.png'),
+          'grass4': load_image('grass_part4.png')}
 gameover = False
 running = True
 fps = 60
@@ -346,8 +425,9 @@ while running:
     scene.handle_events(pygame.event.get())
     scene.update()
     if gameover and not isinstance(scene, EndScene):
-        pygame.time.wait(300)
+        pygame.time.wait(500)
         cur.execute(f"INSERT INTO records(name, score) VALUES('{player}', {int(scene.time_score // 1)})")
         con.commit()
         scene = EndScene(scene.dino.rect.right, scene.dino.rect.bottom)
+        fps = 60
     pygame.display.flip()
