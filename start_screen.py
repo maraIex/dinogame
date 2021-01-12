@@ -110,48 +110,57 @@ class GameScene(Scene):
             Ground(height, width - 1000 + n * i)
 
     def update(self):
-        global fps
-        if self.new_part == 10:
-            Ground(height, width)
-            self.new_part = 0
-        else:
-            self.new_part += 1
-        if self.bird_init == 0:
-            self.bird_init = random.randint(2, 7)
-        self.time_score += 0.02
-        text = self.font.render(f'Ваш счёт: {int(self.time_score // 1)}', 1, (255, 0, 0))
-        if int(self.time_score // 1) > 10:
-            fps = 90
-        self.time_day += 1
-        screen.fill((255, 255, 255))
-        screen.blit(self.desert, (0, 0))
-        all_sprites.update()
-        all_sprites.draw(screen)
-        screen.blit(text, (20, 20))
-        if self.time_day >= 2000:
-            pass
+        global fps, paused
+        if not paused:
+            if self.new_part == 10:
+                Ground(height, width)
+                self.new_part = 0
+            else:
+                self.new_part += 1
+            if self.bird_init == 0:
+                self.bird_init = random.randint(2, 7)
+            self.time_score += 0.02
+            text = self.font.render(f'Ваш счёт: {int(self.time_score // 1)}', 1, (255, 0, 0))
+            if int(self.time_score // 1) > 10:
+                fps = 90
+            self.time_day += 1
+            screen.fill((255, 255, 255))
+            screen.blit(self.desert, (0, 0))
+            all_sprites.update()
+            all_sprites.draw(screen)
+            screen.blit(text, (20, 20))
+            if self.time_day >= 2000:
+                pass
 
     def handle_events(self, e):
+        global paused
         for events in e:
             if events.type == pygame.KEYDOWN:
-                if events.key == pygame.K_w or events.key == pygame.K_SPACE or events.key == pygame.K_UP:
-                    if self.dino.jump == 0:
-                        self.dino.jump = 170
-            if events.type == self.TIMER_EVENT_CAKTUS:
-                self.bird_init -= 1
-                Cactus(self.ground.rect.top)
-                if self.bird_init == 0:
-                    Bird(load_image("bird/BluePterSheetReversedDemo.png"), 9, 1)
-                    self.bird_init = 0
-                    if fps == 60:
-                        pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(2400, 3400))
+                if not paused:
+                    if events.key == pygame.K_w or events.key == pygame.K_SPACE or events.key == pygame.K_UP:
+                        if self.dino.jump == 0:
+                            self.dino.jump = 170
+                # experimental
+                if paused:
+                    paused = False
+                elif not paused:
+                    paused = True
+            if not paused:
+                if events.type == self.TIMER_EVENT_CAKTUS:
+                    self.bird_init -= 1
+                    Cactus(self.ground.rect.top)
+                    if self.bird_init == 0:
+                        Bird(load_image("bird/BluePterSheetReversedDemo.png"), 9, 1)
+                        self.bird_init = 0
+                        if fps == 60:
+                            pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(2400, 3400))
+                        else:
+                            pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(1500, 2400))
                     else:
-                        pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(1500, 2400))
-                else:
-                    if fps == 60:
-                        pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(2100, 2500))
-                    else:
-                        pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(1300, 1700))
+                        if fps == 60:
+                            pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(2100, 2500))
+                        else:
+                            pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(1300, 1700))
 
 
 class MainScene(Scene):
@@ -245,10 +254,14 @@ class MainScene(Scene):
         self.exit_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((20, 20), (120, 50)),
                                                      text='Выйти в меню',
                                                      manager=manager)
-        text = "Добро пожаловать в игру, новичок!<br>" +\
-               "В DinoGame предельно простые правила, а для управления нужна лишь кнопка Space или стрелочки.<br>" +\
+        text = "Добро пожаловать в игру, новичок!<br>" + \
+               "Отключали ли когда-то у тебя интернет? Уверен, что да." + \
+               "Значит, ты тоже играл в динозаврика в Google Chrome, не так ли?" + \
+               "Перед тобой та самая игра про динозавра - DinoGame!" + \
+               "В нашей игре предельно простые правила, а для управления нужна лишь кнопка Space или стрелочки.<br>" + \
+               "Пауза включается на английскую P." + \
                "Цель игры: продержаться как можно дольше, избегая кактусов и птеродактилей.<br>" +\
-               "Что ж, удачи в дивном старом мире, комрад!!!"
+               "Жизней нет, у тебя один шанс. Удачи!"
         self.table = pygame_gui.elements.UITextBox(html_text=text,
                                                    relative_rect=pygame.Rect((300, 200), (400, 400)),
                                                    manager=manager)
@@ -418,6 +431,7 @@ scene = MainScene()
 con = sqlite3.connect('records_db.db')
 cur = con.cursor()
 player = None
+paused = False
 while running:
     timedelta = clock.tick(fps) / 1000.0
     if pygame.event.get(pygame.QUIT):
