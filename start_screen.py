@@ -81,7 +81,7 @@ class EndScene(Scene):
 
                 screen.blit(self.text1, (text_x + 10, text_y + text_h + 20))
                 gameover = False
-            if e.type == pygame.KEYDOWN:
+            if not gameover and e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_RETURN:
                     pygame.time.set_timer(self.TIMER_EVENT_TYPE1, 0)
                     scene = MainScene()
@@ -188,7 +188,8 @@ class MainScene(Scene):
         super().__init__()
         self.fon = load_image('fon.jpg')
         self.font = pygame.font.SysFont('sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheading'
-        self.time_score = 0                                'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 70)
+                                        'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 70)
+        self.time_score = 0
         self.shop_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((20, 540), (125, 75)),
                                                          text='Магазин',
                                                          manager=manager)
@@ -220,9 +221,7 @@ class MainScene(Scene):
         self.exit_btn = None
         self.table = None
         self.buttons = [self.begin_button, self.continue_button, self.records_button,
-                        self.end_button, self.player_name, self.rules]
-        pygame.mixer.music.load('data/mainmenu.mp3')
-        pygame.mixer.music.play(-1)
+                        self.end_button, self.player_name, self.rules, self.shop_button]
 
     def update(self):
         screen.blit(self.fon, (0, 0))
@@ -258,9 +257,11 @@ class MainScene(Scene):
                         with open('data/save.dat', 'rb') as file:
                             scene = pickle.load(file)
                             scene.dino = player_group.sprites()[0]
+                            if not orig_fon:
+                                scene.desert = images['desert']
+                            elif orig_fon:
+                                scene.desert = images['orig_fon']
                             scene.ground = Ground(height, width)
-                            scene.desert = images['desert']
-                            scene.desert = pygame.transform.scale(scene.desert, (width, height))
                             scene.font = pygame.font.Font(None, 30)
                     elif event.ui_element.text == 'Ваши рекорды':
                         self.show_records()
@@ -388,10 +389,12 @@ class ShopScene(Scene):
         self.pack_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((550, 550), (300, 75)),
                                                        text='"Оригинальный" комплект',
                                                        manager=manager)
+        self.buttons = [self.rules, self.end_button, self.dino_button, self.cactus_button,
+                        self.pter_button, self.fon_button, self.pack_button]
         self.text = self.font.render('Dino Shop', 1, (255, 0, 0))
         self.price = self.font.render('50', 1, (255, 0, 0))
         self.pack_price = self.font.render('120', 1, (255, 0, 0))
-        self.money_text = self.money_font.render(f'Деньги: {money}', 1, (255, 0, 0))
+        self.money_text = self.money_font.render(f'Деньги: {int(money)}', 1, (255, 0, 0))
         self.fon_price = self.font.render('20', 1, (255, 0, 0))
         self.exit_btn = None
         self.table = None
@@ -399,14 +402,15 @@ class ShopScene(Scene):
     def update(self):
         screen.blit(self.fon, (0, 0))
         screen.blit(self.text, (305, 50))
-        screen.blit(self.price, (50, 180))
-        screen.blit(self.price, (850, 180))
-        screen.blit(self.price, (50, 550))
-        screen.blit(self.pack_price, (850, 550))
-        screen.blit(self.fon_price, (450, 380))
-        screen.blit(self.money_text, (10, 10))
+        if not self.exit_btn:
+            screen.blit(self.price, (50, 180))
+            screen.blit(self.price, (850, 180))
+            screen.blit(self.price, (50, 550))
+            screen.blit(self.pack_price, (850, 550))
+            screen.blit(self.fon_price, (450, 380))
+            screen.blit(self.money_text, (10, 10))
+            shop_sprites.draw(screen)
         manager.update(timedelta)
-        shop_sprites.draw(screen)
         manager.draw_ui(screen)
 
     def handle_events(self, events):
@@ -420,6 +424,8 @@ class ShopScene(Scene):
                         self.__init__(money)
                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element.text == 'Выйти в меню':
+                        for elem in self.buttons:
+                            elem.hide()
                         scene = MainScene()
                     if event.ui_element.text == '"Оригинальный" Дино':
                         if not dino_bought:
@@ -496,11 +502,11 @@ class ShopScene(Scene):
         self.exit_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((20, 20), (120, 50)),
                                                      text='Выйти в магазин',
                                                      manager=manager)
-        text = "Ого, да вы, похоже, зашли в магазин?!" + \
-            "Перед вами находятся товары, а именно скины (облики) для элементов игры." + \
-            "Чтобы их купить, нажмите соответствующую кнопку." + \
-            "Теперь, чтобы использовать скин, нажмите на кнопку снова." + \
-            "Чтобы убрать скин, нажмите на соответствующую кнопку. (удивительно, правда?)" + \
+        text = "Ого, да вы, похоже, зашли в магазин?!<br>" + \
+            "Перед вами находятся товары, а именно скины (облики) для элементов игры.<br>" + \
+            "Чтобы их купить, нажмите соответствующую кнопку.<br>" + \
+            "Теперь, чтобы использовать скин, нажмите на кнопку снова.<br>" + \
+            "Чтобы убрать скин, нажмите на соответствующую кнопку. (удивительно, правда?)<br>" + \
             "Ваш баланс указан в правом верхнем углу."
         self.table = pygame_gui.elements.UITextBox(html_text=text,
                                                    relative_rect=pygame.Rect((300, 200), (400, 400)),
@@ -730,6 +736,8 @@ orig_fon = False
 gameover = False
 running = True
 fps = 60
+pygame.mixer.music.load('data/mainmenu.mp3')
+pygame.mixer.music.play(-1)
 clock = pygame.time.Clock()
 manager = pygame_gui.UIManager((width, height))
 con = sqlite3.connect('records_db.db')
