@@ -2,9 +2,9 @@ import os
 import random
 import sqlite3
 import sys
-
 import pygame
 import pygame_gui
+import pickle
 
 
 class Ball(pygame.sprite.Sprite):
@@ -95,15 +95,9 @@ class GameScene(Scene):
         pygame.time.set_timer(self.TIMER_EVENT_TYPE, 1000)
         pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, 10)
         pygame.time.set_timer(self.TIMER_EVENT_BIRD, 4000)
-        self.dino = Dino(load_image("dino/dinosheet.png"), 2, 1)
-        self.ground = Ground(height, width)
         manager.clear_and_reset()
-        self.clock2 = pygame.time.Clock()
         self.time_day = 0
         self.time_score = 0
-        self.font = pygame.font.Font(None, 30)
-        self.desert = images['desert']
-        self.desert = pygame.transform.scale(self.desert, (width, height))
         self.bird_init = 0
         n = 50
         for i in range(102):
@@ -133,18 +127,28 @@ class GameScene(Scene):
                 pass
 
     def handle_events(self, e):
-        global paused
+        global paused, scene, last_save
         for events in e:
             if events.type == pygame.KEYDOWN:
                 if not paused:
                     if events.key == pygame.K_w or events.key == pygame.K_SPACE or events.key == pygame.K_UP:
                         if self.dino.jump == 0:
                             self.dino.jump = 170
+                    elif events.key == pygame.K_p:
+                        paused = True
                 # experimental
-                if paused:
+                else:
                     paused = False
-                elif not paused:
-                    paused = True
+                if events.key == pygame.K_ESCAPE:
+                    with open('data/save.dat', 'wb') as file:
+                        scene.dino = None
+                        scene.ground = None
+                        scene.desert = None
+                        scene.font = None
+                        pickle.dump(scene, file)
+                        last_save = True
+                    scene = MainScene()
+
             if not paused:
                 if events.type == self.TIMER_EVENT_CAKTUS:
                     self.bird_init -= 1
@@ -176,6 +180,10 @@ class MainScene(Scene):
         self.continue_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 300), (300, 75)),
                                                             text='Продолжить игру',
                                                             manager=manager)
+
+        if not last_save:
+            self.continue_button.set_text('Нет сохранений')
+            self.continue_button.disable()
         self.records_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 420), (300, 75)),
                                                            text='Ваши рекорды',
                                                            manager=manager)
@@ -191,6 +199,11 @@ class MainScene(Scene):
         self.player_name.set_text('Введите имя игрока')
         self.text = self.font.render('Dino Game', 1, (255, 0, 0))
         self.exit_btn = None
+        self.table = None
+        self.buttons = [self.begin_button, self.continue_button, self.records_button,
+                        self.end_button, self.player_name, self.rules]
+        pygame.mixer.music.load('data/mainmenu.mp3')
+        pygame.mixer.music.play(-1)
 
     def update(self):
         screen.blit(self.fon, (0, 0))
@@ -205,14 +218,24 @@ class MainScene(Scene):
                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element.text == 'Начать игру':
                         name = self.player_name.get_text()
-                        print(name)
                         if name != 'Для игры требуется ввести имя' and name != 'Введите имя игрока' and name:
                             player = name
                             scene = GameScene()
+                            scene.dino = Dino(load_image("dino/dinosheet.png"), 2, 1)
+                            scene.ground = Ground(height, width)
+                            scene.desert = images['desert']
+                            scene.desert = pygame.transform.scale(scene.desert, (width, height))
+                            scene.font = pygame.font.Font(None, 30)
                         else:
                             self.player_name.set_text('Для игры требуется ввести имя')
                     elif event.ui_element.text == 'Продолжить игру':
-                        print('Продолжить игру')
+                        with open('data/save.dat', 'rb') as file:
+                            scene = pickle.load(file)
+                            scene.dino = player_group.sprites()[0]
+                            scene.ground = Ground(height, width)
+                            scene.desert = images['desert']
+                            scene.desert = pygame.transform.scale(scene.desert, (width, height))
+                            scene.font = pygame.font.Font(None, 30)
                     elif event.ui_element.text == 'Ваши рекорды':
                         self.show_records()
                     elif event.ui_element.text == 'Правила игры':
@@ -227,12 +250,15 @@ class MainScene(Scene):
                     self.player_name.set_text('')
             if self.exit_btn:
                 if self.exit_btn.check_pressed():
-                    manager.clear_and_reset()
-                    self.__init__()
+                    self.exit_btn.hide()
+                    self.table.hide()
+                    for elem in self.buttons:
+                        elem.show()
             manager.process_events(event)
 
     def show_records(self):
-        manager.clear_and_reset()
+        for elem in self.buttons:
+            elem.hide()
         self.exit_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((20, 20), (120, 50)),
                                                 text='Выйти в меню',
                                                 manager=manager)
@@ -250,16 +276,17 @@ class MainScene(Scene):
                                                          manager=manager)
 
     def show_rules(self):
-        manager.clear_and_reset()
+        for elem in self.buttons:
+            elem.hide()
         self.exit_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((20, 20), (120, 50)),
                                                      text='Выйти в меню',
                                                      manager=manager)
         text = "Добро пожаловать в игру, новичок!<br>" + \
-               "Отключали ли когда-то у тебя интернет? Уверен, что да." + \
-               "Значит, ты тоже играл в динозаврика в Google Chrome, не так ли?" + \
-               "Перед тобой та самая игра про динозавра - DinoGame!" + \
+               "Отключали ли когда-то у тебя интернет? Уверен, что да.<br>" + \
+               "Значит, ты тоже играл в динозаврика в Google Chrome, не так ли?<br>" + \
+               "Перед тобой та самая игра про динозавра - DinoGame!<br>" + \
                "В нашей игре предельно простые правила, а для управления нужна лишь кнопка Space или стрелочки.<br>" + \
-               "Пауза включается на английскую P." + \
+               "Пауза включается на английскую P.<br>" + \
                "Цель игры: продержаться как можно дольше, избегая кактусов и птеродактилей.<br>" +\
                "Жизней нет, у тебя один шанс. Удачи!"
         self.table = pygame_gui.elements.UITextBox(html_text=text,
@@ -427,11 +454,12 @@ running = True
 fps = 60
 clock = pygame.time.Clock()
 manager = pygame_gui.UIManager((width, height))
-scene = MainScene()
 con = sqlite3.connect('records_db.db')
 cur = con.cursor()
 player = None
 paused = False
+last_save = False
+scene = MainScene()
 while running:
     timedelta = clock.tick(fps) / 1000.0
     if pygame.event.get(pygame.QUIT):
@@ -442,6 +470,9 @@ while running:
         pygame.time.wait(500)
         cur.execute(f"INSERT INTO records(name, score) VALUES('{player}', {int(scene.time_score // 1)})")
         con.commit()
+        pygame.mixer.music.load('data/gameover.mp3')
+        pygame.mixer.music.play()
         scene = EndScene(scene.dino.rect.right, scene.dino.rect.bottom)
         fps = 60
+        last_save = None
     pygame.display.flip()
