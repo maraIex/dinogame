@@ -85,6 +85,8 @@ class EndScene(Scene):
                 if e.key == pygame.K_RETURN:
                     pygame.time.set_timer(self.TIMER_EVENT_TYPE1, 0)
                     scene = MainScene()
+                    pygame.mixer.music.load('data/mainmenu.mp3')
+                    pygame.mixer.music.play(-1)
 
 
 class GameScene(Scene):
