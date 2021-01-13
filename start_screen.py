@@ -46,6 +46,8 @@ class Scene(object):
 class EndScene(Scene):
     def __init__(self, x, y):
         super().__init__()
+        # для работы магазина
+        self.time_score = 0
         screen.fill((0, 0, 0))
         all_sprites.empty()
         self.TIMER_EVENT_TYPE1 = pygame.NUMEVENTS - 1
@@ -86,8 +88,13 @@ class EndScene(Scene):
 
 
 class GameScene(Scene):
+    global orig_dino, orig_fon, orig_pter, orig_cactus
+
     def __init__(self):
         super().__init__()
+        manager.clear_and_reset()
+        # для работы магазина
+        self.time_score = 0
         self.new_part = 10
         self.TIMER_EVENT_TYPE = pygame.USEREVENT + 1
         self.TIMER_EVENT_CAKTUS = self.TIMER_EVENT_TYPE + 1
@@ -95,14 +102,20 @@ class GameScene(Scene):
         pygame.time.set_timer(self.TIMER_EVENT_TYPE, 1000)
         pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, 10)
         pygame.time.set_timer(self.TIMER_EVENT_BIRD, 4000)
-        self.dino = Dino(load_image("dino/dinosheet.png"), 2, 1)
+        if orig_dino:
+            self.dino = Dino(load_image("dino/DinoOriginalSheet.png"), 5, 1)
+        elif not orig_dino:
+            self.dino = Dino(load_image("dino/dinosheet.png"), 2, 1)
+        if not orig_fon:
+            self.desert = images['desert']
+        elif orig_fon:
+            self.desert = images['orig_fon']
         self.ground = Ground(height, width)
         manager.clear_and_reset()
         self.clock2 = pygame.time.Clock()
         self.time_day = 0
         self.time_score = 0
         self.font = pygame.font.Font(None, 30)
-        self.desert = images['desert']
         self.desert = pygame.transform.scale(self.desert, (width, height))
         self.bird_init = 0
         n = 50
@@ -141,16 +154,23 @@ class GameScene(Scene):
                         if self.dino.jump == 0:
                             self.dino.jump = 170
                 # experimental
-                if paused:
-                    paused = False
-                elif not paused:
-                    paused = True
+                if events.key == pygame.K_p:
+                    if paused:
+                        paused = False
+                    elif not paused:
+                        paused = True
             if not paused:
                 if events.type == self.TIMER_EVENT_CAKTUS:
                     self.bird_init -= 1
-                    Cactus(self.ground.rect.top)
+                    if orig_cactus:
+                        AnimatedCactus(self.ground.rect.top, load_image("CactusOriginalSheet.png"), 4, 1)
+                    elif not orig_cactus:
+                        Cactus(self.ground.rect.top)
                     if self.bird_init == 0:
-                        Bird(load_image("bird/BluePterSheetReversedDemo.png"), 9, 1)
+                        if orig_pter:
+                            Bird(load_image("bird/PterOriginalSheet.png"), 2, 1)
+                        elif not orig_pter:
+                            Bird(load_image("bird/BluePterSheetReversedDemo.png"), 9, 1)
                         self.bird_init = 0
                         if fps == 60:
                             pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(2400, 3400))
@@ -166,9 +186,15 @@ class GameScene(Scene):
 class MainScene(Scene):
     def __init__(self):
         super().__init__()
+        manager.clear_and_reset()
+        # для работы магазина
+        self.time_score = 0
         self.fon = load_image('fon.jpg')
         self.font = pygame.font.SysFont('sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheading'
                                         'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 70)
+        self.shop_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((20, 540), (125, 75)),
+                                                         text='Магазин',
+                                                         manager=manager)
         self.begin_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 180), (300, 75)),
                                                          text='Начать игру',
                                                          manager=manager)
@@ -199,10 +225,12 @@ class MainScene(Scene):
         manager.draw_ui(screen)
 
     def handle_events(self, events):
-        global scene, player
+        global scene, player, money
         for event in events:
             if event.type == pygame.USEREVENT:
                 if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                    if event.ui_element.text == 'Магазин':
+                        scene = ShopScene(money)
                     if event.ui_element.text == 'Начать игру':
                         name = self.player_name.get_text()
                         print(name)
@@ -267,7 +295,196 @@ class MainScene(Scene):
                                                    manager=manager)
 
 
+class ShopScene(Scene):
+    global orig_fon, orig_dino, orig_pter, orig_cactus, money, dino_bought, cactus_bought, pter_bought, fon_bought,\
+        pack_bought
+
+    def __init__(self, money):
+        super().__init__()
+        manager.clear_and_reset()
+        self.dino = pygame.sprite.Sprite(shop_sprites)
+        self.dino.image = images['DinoOriginal']
+        self.dino.rect = self.dino.image.get_rect()
+        self.dino.rect.x = 200
+        self.dino.rect.y = 270
+        self.cactus = pygame.sprite.Sprite(shop_sprites)
+        self.cactus.image = images['CactusOriginal']
+        self.cactus.rect = self.cactus.image.get_rect()
+        self.cactus.rect.x = 265
+        self.cactus.rect.y = 450
+        self.pter = pygame.sprite.Sprite(shop_sprites)
+        self.pter.image = images['PterOriginal']
+        self.pter.rect = self.pter.image.get_rect()
+        self.pter.rect.x = 700
+        self.pter.rect.y = 270
+        self.dino2 = pygame.sprite.Sprite(shop_sprites)
+        self.dino2.image = images['DinoOriginal']
+        self.dino2.rect = self.dino2.image.get_rect()
+        self.dino2.rect.x = 560
+        self.dino2.rect.y = 450
+        self.cactus2 = pygame.sprite.Sprite(shop_sprites)
+        self.cactus2.image = images['CactusOriginal']
+        self.cactus2.rect = self.cactus2.image.get_rect()
+        self.cactus2.rect.x = 665
+        self.cactus2.rect.y = 450
+        self.pter2 = pygame.sprite.Sprite(shop_sprites)
+        self.pter2.image = images['PterOriginal']
+        self.pter2.rect = self.pter2.image.get_rect()
+        self.pter2.rect.x = 730
+        self.pter2.rect.y = 450
+        self.rules_pressed = False
+        # self.tick = pygame.sprite.Sprite(all_sprites)
+        # self.tick.image = images['tick']
+        # self.tick.rect = self.tick.image.get_rect()
+        self.fon = load_image('dinos.jpg')
+        self.font = pygame.font.SysFont('sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheading'
+                                        'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 70)
+        self.money_font = pygame.font.SysFont('sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheading'
+                                        'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 40)
+        self.rules = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((width - 150, 450), (125, 75)),
+                                                  text='Руководство',
+                                                  manager=manager)
+        self.end_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((20, 450), (125, 75)),
+                                                       text='Выйти в меню',
+                                                       manager=manager)
+        self.dino_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((150, 180), (300, 75)),
+                                                         text='"Оригинальный" Дино',
+                                                         manager=manager)
+
+        self.cactus_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((150, 550), (300, 75)),
+                                                            text='"Оригинальный" кактус',
+                                                            manager=manager)
+        self.pter_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((550, 180), (300, 75)),
+                                                           text='"Оригинальный" Птеродактиль',
+                                                           manager=manager)
+        self.fon_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 280), (300, 75)),
+                                                        text='"Оригинальный" фон',
+                                                        manager=manager)
+        self.pack_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((550, 550), (300, 75)),
+                                                       text='"Оригинальный" комплект',
+                                                       manager=manager)
+        self.text = self.font.render('Dino Shop', 1, (255, 0, 0))
+        self.price = self.font.render('50', 1, (255, 0, 0))
+        self.pack_price = self.font.render('120', 1, (255, 0, 0))
+        self.money_text = self.money_font.render(f'Деньги: {money}', 1, (255, 0, 0))
+        self.fon_price = self.font.render('20', 1, (255, 0, 0))
+        self.exit_btn = None
+        self.table = None
+
+    def update(self):
+        screen.blit(self.fon, (0, 0))
+        screen.blit(self.text, (305, 50))
+        screen.blit(self.price, (50, 180))
+        screen.blit(self.price, (850, 180))
+        screen.blit(self.price, (50, 550))
+        screen.blit(self.pack_price, (850, 550))
+        screen.blit(self.fon_price, (450, 380))
+        screen.blit(self.money_text, (10, 10))
+        manager.update(timedelta)
+        shop_sprites.draw(screen)
+        manager.draw_ui(screen)
+
+    def handle_events(self, events):
+        global scene, orig_fon, orig_dino, orig_pter, orig_cactus, money, dino_bought, cactus_bought, pter_bought,\
+            fon_bought, pack_bought
+        for event in events:
+            if event.type == pygame.USEREVENT:
+                if self.exit_btn:
+                    if self.exit_btn.check_pressed():
+                        manager.clear_and_reset()
+                        self.__init__(money)
+                if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                    if event.ui_element.text == 'Выйти в меню':
+                        scene = MainScene()
+                    if event.ui_element.text == '"Оригинальный" Дино':
+                        if not dino_bought:
+                            if money >= 50:
+                                money = money - 50
+                                self.money_text = self.money_font.render(f'Деньги: {money}', 1, (255, 0, 0))
+                                dino_bought = True
+                        elif dino_bought and not orig_dino:
+                            orig_dino = True
+                        elif dino_bought and orig_dino:
+                            orig_dino = False
+                    elif event.ui_element.text == '"Оригинальный" кактус':
+                        if not cactus_bought:
+                            if money >= 50:
+                                money = money - 50
+                                self.money_text = self.money_font.render(f'Деньги: {money}', 1, (255, 0, 0))
+                                cactus_bought = True
+                        elif cactus_bought and not orig_cactus:
+                            orig_cactus = True
+                        elif cactus_bought and orig_cactus:
+                            orig_cactus = False
+                    elif event.ui_element.text == '"Оригинальный" Птеродактиль':
+                        if not pter_bought:
+                            if money >= 50:
+                                money = money - 50
+                                self.money_text = self.money_font.render(f'Деньги: {money}', 1, (255, 0, 0))
+                                pter_bought = True
+                        elif pter_bought and not orig_pter:
+                            orig_pter = True
+                        elif pter_bought and orig_pter:
+                            orig_pter = False
+                    elif event.ui_element.text == '"Оригинальный" фон':
+                        if not fon_bought:
+                            if money >= 20:
+                                money = money - 20
+                                self.money_text = self.money_font.render(f'Деньги: {money}', 1, (255, 0, 0))
+                                fon_bought = True
+                        elif fon_bought and not orig_fon:
+                            orig_fon = True
+                        elif fon_bought and orig_fon:
+                            orig_fon = False
+                    elif event.ui_element.text == '"Оригинальный" комплект':
+                        if not pack_bought and money >= 120:
+                                money = money - 120
+                                dino_bought = True
+                                pter_bought = True
+                                fon_bought = True
+                                cactus_bought = True
+                                pack_bought = True
+                                self.money_text = self.money_font.render(f'Деньги: {money}', 1, (255, 0, 0))
+                        elif pack_bought:
+                            if dino_bought and not orig_dino:
+                                orig_dino = True
+                            elif dino_bought and orig_dino:
+                                orig_dino = False
+                            if cactus_bought and not orig_cactus:
+                                orig_cactus = True
+                            elif cactus_bought and orig_cactus:
+                                orig_cactus = False
+                            if pter_bought and not orig_pter:
+                                orig_pter = True
+                            elif pter_bought and orig_pter:
+                                orig_pter = False
+                            if fon_bought and not orig_fon:
+                                orig_fon = True
+                            elif fon_bought and orig_fon:
+                                orig_fon = False
+                    elif event.ui_element.text == 'Руководство':
+                        self.show_rules()
+            manager.process_events(event)
+
+    def show_rules(self):
+        manager.clear_and_reset()
+        self.exit_btn = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((20, 20), (120, 50)),
+                                                     text='Выйти в магазин',
+                                                     manager=manager)
+        text = "Ого, да вы, похоже, зашли в магазин?!" + \
+            "Перед вами находятся товары, а именно скины (облики) для элементов игры." + \
+            "Чтобы их купить, нажмите соответствующую кнопку." + \
+            "Теперь, чтобы использовать скин, нажмите на кнопку снова." + \
+            "Чтобы убрать скин, нажмите на соответствующую кнопку. (удивительно, правда?)" + \
+            "Ваш баланс указан в правом верхнем углу."
+        self.table = pygame_gui.elements.UITextBox(html_text=text,
+                                                   relative_rect=pygame.Rect((300, 200), (400, 400)),
+                                                   manager=manager)
+
+
 class Dino(pygame.sprite.Sprite):
+    global orig_dino
+
     def __init__(self, sheet, columns, rows):
         super().__init__(player_group, all_sprites)
         self.iter_count = 0
@@ -280,9 +497,14 @@ class Dino(pygame.sprite.Sprite):
         # self.image = pygame.transform.scale(self.image, (self.image.get_width() + 30,
         #                                                  self.image.get_height() + 30))
         self.jump = 0
-        self.rect = self.image.get_rect().move(
-            90, height - height // 6 - self.image.get_height() + 45)
-        self.mask = pygame.mask.from_surface(self.image)
+        if orig_dino:
+            self.rect = self.image.get_rect().move(
+                90, height - height // 6 - self.image.get_height() + 20)
+            self.mask = pygame.mask.from_surface(self.image)
+        elif not orig_dino:
+            self.rect = self.image.get_rect().move(
+                90, height - height // 6 - self.image.get_height() + 45)
+            self.mask = pygame.mask.from_surface(self.image)
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
@@ -315,7 +537,10 @@ class Dino(pygame.sprite.Sprite):
 class Ground(pygame.sprite.Sprite):
     def __init__(self, y, x):
         super().__init__(all_sprites)
-        self.grass_parts = [images['grass1'], images['grass2'], images['grass3'], images['grass4']]
+        if not orig_fon:
+            self.grass_parts = [images['grass1'], images['grass2'], images['grass3'], images['grass4']]
+        elif orig_fon:
+            self.grass_parts = [images['orig_ground']]
         self.image = random.choice(self.grass_parts)
         # self.image = pygame.transform.scale(self.image, (width, height // 6))
         self.rect = self.image.get_rect()
@@ -388,6 +613,44 @@ class Cactus(pygame.sprite.Sprite):
             gameover = True
 
 
+class AnimatedCactus(pygame.sprite.Sprite):
+    def __init__(self, bot, sheet, columns, rows):
+        super().__init__(enemy_group, all_sprites)
+        self.iter_count = 0
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect()
+        self.rect.bottom = bot + 10
+        self.rect.left = width
+        self.speed = [3, 4, 5]
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        global gameover
+        if self.iter_count == 15:
+            self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+            self.image = self.frames[self.cur_frame]
+            self.iter_count = 0
+        else:
+            self.iter_count += 1
+        self.rect.x -= 3
+        if self.rect.x < 0:
+            self.kill()
+        if pygame.sprite.collide_mask(self, scene.dino):
+            gameover = True
+
+
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
     # если файл не существует, то выходим
@@ -406,9 +669,11 @@ def load_image(name, colorkey=None):
 
 
 pygame.init()
+money = 120
 pygame.display.set_caption('Dino')
 # dino = None
 width, height = 1000, 650
+shop_sprites = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 world_group = pygame.sprite.Group()
@@ -421,7 +686,22 @@ images = {'grass': load_image('grass1.png'),
           'grass1': load_image('grass_part1.png'),
           'grass2': load_image('grass_part2.png'),
           'grass3': load_image('grass_part3.png'),
-          'grass4': load_image('grass_part4.png')}
+          'grass4': load_image('grass_part4.png'),
+          'DinoOriginal': load_image('dino/DinoOriginal.png'),
+          'CactusOriginal': load_image('CactusOriginal.png'),
+          'PterOriginal': load_image('bird/PterOriginal.png'),
+          'tick': load_image('tick.png'),
+          'orig_fon': load_image('original_background.png'),
+          'orig_ground': load_image('OriginalGround.png')}
+dino_bought = False
+pter_bought = False
+cactus_bought = False
+fon_bought = False
+pack_bought = False
+orig_dino = False
+orig_cactus = False
+orig_pter = False
+orig_fon = False
 gameover = False
 running = True
 fps = 60
@@ -441,6 +721,7 @@ while running:
     if gameover and not isinstance(scene, EndScene):
         pygame.time.wait(500)
         cur.execute(f"INSERT INTO records(name, score) VALUES('{player}', {int(scene.time_score // 1)})")
+        money = money + scene.time_score // 1
         con.commit()
         scene = EndScene(scene.dino.rect.right, scene.dino.rect.bottom)
         fps = 60
