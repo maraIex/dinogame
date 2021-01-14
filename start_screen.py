@@ -7,6 +7,12 @@ import pygame_gui
 import pickle
 
 
+"""(А) - написал Андрей, (Л) - Лёша
+Лёша осуществлял поиск спрайтов, их анимацию (земли, кактуса, птеродактиля, дино). Сделал магазин и паузу.
+Андрей сделал главное меню, сохранения, рекорды, геймплей игры (остальные классы за исключением анимации), музыку."""
+
+
+# Класс шариков, необходимый для отрисовки концовки. (А)
 class Ball(pygame.sprite.Sprite):
     def __init__(self, radius, x, y):
         super().__init__(all_sprites)
@@ -29,6 +35,7 @@ class Ball(pygame.sprite.Sprite):
             self.vx = -self.vx
 
 
+# Класс-родитель для смены экранов (А)
 class Scene(object):
     def __init__(self):
         pass
@@ -43,6 +50,7 @@ class Scene(object):
         raise NotImplementedError
 
 
+# Экран концовки игры (А)
 class EndScene(Scene):
     def __init__(self, x, y):
         super().__init__()
@@ -89,6 +97,7 @@ class EndScene(Scene):
                     pygame.mixer.music.play(-1)
 
 
+# Экран основной игры (А, пауза - Л)
 class GameScene(Scene):
     global orig_dino, orig_fon, orig_pter, orig_cactus
 
@@ -118,16 +127,16 @@ class GameScene(Scene):
     def update(self):
         global fps, paused
         if not paused:
-            if self.new_part == 10:
+            if self.new_part == 10:  # отрисовать землю "за экраном"
                 Ground(height, width)
                 self.new_part = 0
             else:
                 self.new_part += 1
-            if self.bird_init == 0:
+            if self.bird_init == 0:  # порядок птичек
                 self.bird_init = random.randint(2, 7)
-            self.time_score += 0.02
+            self.time_score += 0.02  # счёт игры
             text = self.font.render(f'Ваш счёт: {int(self.time_score // 1)}', 1, (255, 0, 0))
-            if int(self.time_score // 1) > 10:
+            if int(self.time_score // 1) > 10:  # ускорение игры, новая фаза
                 fps = 90
             self.time_day += 1
             screen.fill((255, 255, 255))
@@ -146,13 +155,13 @@ class GameScene(Scene):
                     if events.key == pygame.K_w or events.key == pygame.K_SPACE or events.key == pygame.K_UP:
                         if self.dino.jump == 0:
                             self.dino.jump = 170
-                    elif events.key == pygame.K_p:
+                    elif events.key == pygame.K_p:  # пауза
                         paused = True
                 # experimental
                 else:
                     paused = False
                 if events.key == pygame.K_ESCAPE:
-                    with open('data/save.dat', 'wb') as file:
+                    with open('data/save.dat', 'wb') as file:  # запись сохранения
                         scene.dino = None
                         scene.ground = None
                         scene.desert = None
@@ -185,6 +194,7 @@ class GameScene(Scene):
                             pygame.time.set_timer(self.TIMER_EVENT_CAKTUS, random.randint(1300, 1700))
 
 
+# Экран главного меню (А)
 class MainScene(Scene):
     def __init__(self):
         super().__init__()
@@ -323,6 +333,7 @@ class MainScene(Scene):
                                                    manager=manager)
 
 
+# Экран магазина (Л)
 class ShopScene(Scene):
     global orig_fon, orig_dino, orig_pter, orig_cactus, money, dino_bought, cactus_bought, pter_bought, fon_bought,\
         pack_bought
@@ -361,9 +372,6 @@ class ShopScene(Scene):
         self.pter2.rect.x = 730
         self.pter2.rect.y = 450
         self.rules_pressed = False
-        # self.tick = pygame.sprite.Sprite(all_sprites)
-        # self.tick.image = images['tick']
-        # self.tick.rect = self.tick.image.get_rect()
         self.fon = load_image('dinos.jpg')
         self.font = pygame.font.SysFont('sitkasmallsitkatextbolditalicsitkasubheadingbolditalicsitkaheading'
                                         'bolditalicsitkadisplaybolditalicsitkabannerbolditalic', 70)
@@ -515,6 +523,7 @@ class ShopScene(Scene):
                                                    manager=manager)
 
 
+# Класс Динозаврика (А, анимация - Л)
 class Dino(pygame.sprite.Sprite):
     global orig_dino
 
@@ -525,10 +534,6 @@ class Dino(pygame.sprite.Sprite):
         self.cut_sheet(sheet, columns, rows)
         self.cur_frame = 0
         self.image = self.frames[self.cur_frame]
-        # self.rect = self.rect.move(x, y)
-        # self.image = load_image(r'dino\dino1_a.png', -1)
-        # self.image = pygame.transform.scale(self.image, (self.image.get_width() + 30,
-        #                                                  self.image.get_height() + 30))
         self.jump = 0
         if orig_dino:
             self.rect = self.image.get_rect().move(
@@ -539,7 +544,7 @@ class Dino(pygame.sprite.Sprite):
                 90, height - height // 6 - self.image.get_height() + 45)
             self.mask = pygame.mask.from_surface(self.image)
 
-    def cut_sheet(self, sheet, columns, rows):
+    def cut_sheet(self, sheet, columns, rows):  # анимация
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
                                 sheet.get_height() // rows)
         for j in range(rows):
@@ -548,7 +553,7 @@ class Dino(pygame.sprite.Sprite):
                 self.frames.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
-    def update(self):
+    def update(self):  # перемещение и прыжок дино
         if self.iter_count == 15:
             self.cur_frame = (self.cur_frame + 1) % len(self.frames)
             self.image = self.frames[self.cur_frame]
@@ -567,6 +572,7 @@ class Dino(pygame.sprite.Sprite):
                 self.jump = 0
 
 
+# Класс Земли (Л)
 class Ground(pygame.sprite.Sprite):
     def __init__(self, y, x):
         super().__init__(all_sprites)
@@ -575,17 +581,17 @@ class Ground(pygame.sprite.Sprite):
         elif orig_fon:
             self.grass_parts = [images['orig_ground']]
         self.image = random.choice(self.grass_parts)
-        # self.image = pygame.transform.scale(self.image, (width, height // 6))
         self.rect = self.image.get_rect()
         self.rect.bottom = y
         self.rect.left = x
 
-    def update(self):
+    def update(self):  # перемещение
         self.rect.x -= 3
         if self.rect.right < 0:
             self.kill()
 
 
+# Класс Птеродактиля (А, анимация - Л)
 class Bird(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows):
         super().__init__(enemy_group, all_sprites)
@@ -600,7 +606,7 @@ class Bird(pygame.sprite.Sprite):
         self.rect.top = 150
         self.rect.left = width + 200
 
-    def cut_sheet(self, sheet, columns, rows):
+    def cut_sheet(self, sheet, columns, rows):  # анимация
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
                                 sheet.get_height() // rows)
         for j in range(rows):
@@ -609,7 +615,7 @@ class Bird(pygame.sprite.Sprite):
                 self.frames.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
-    def update(self):
+    def update(self):  # перемещение и проверка на касание дино
         global gameover
         if self.iter_count == 15:
             self.cur_frame = (self.cur_frame + 1) % len(self.frames)
@@ -625,6 +631,7 @@ class Bird(pygame.sprite.Sprite):
             gameover = True
 
 
+# Класс Кактуса (А, анимация - Л)
 class Cactus(pygame.sprite.Sprite):
     def __init__(self, bot):
         super().__init__(enemy_group, all_sprites)
@@ -637,7 +644,7 @@ class Cactus(pygame.sprite.Sprite):
         self.rect.left = width
         self.speed = [3, 4, 5]
 
-    def update(self):
+    def update(self):  # перемещение и проверка на касание дино
         global gameover
         self.rect.x -= 3
         if self.rect.x < 0:
@@ -646,6 +653,7 @@ class Cactus(pygame.sprite.Sprite):
             gameover = True
 
 
+# Класс Кактуса из магазина (Л)
 class AnimatedCactus(pygame.sprite.Sprite):
     def __init__(self, bot, sheet, columns, rows):
         super().__init__(enemy_group, all_sprites)
@@ -660,7 +668,7 @@ class AnimatedCactus(pygame.sprite.Sprite):
         self.rect.left = width
         self.speed = [3, 4, 5]
 
-    def cut_sheet(self, sheet, columns, rows):
+    def cut_sheet(self, sheet, columns, rows):  # анимация
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
                                 sheet.get_height() // rows)
         for j in range(rows):
@@ -669,7 +677,7 @@ class AnimatedCactus(pygame.sprite.Sprite):
                 self.frames.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
-    def update(self):
+    def update(self):  # анимация, перемещение и проверка на касание дино
         global gameover
         if self.iter_count == 15:
             self.cur_frame = (self.cur_frame + 1) % len(self.frames)
@@ -701,10 +709,11 @@ def load_image(name, colorkey=None):
     return image
 
 
+"""(A) основной цикл игры, инициализация группы спрайтов, логических переменных,
+ запись рекордов в базу данных, музыка"""
 pygame.init()
 money = 120
 pygame.display.set_caption('Dino')
-# dino = None
 width, height = 1000, 650
 shop_sprites = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
